@@ -1,0 +1,169 @@
+Dependency Injection?
+First is necessary to explain very important thing.
+
+Dependency Injection and DI Container (Dependency Injection Container) are not the same thing!
+
+Dependency Injection?
+DI (as for example MVC) is another design architecture pattern, which lead programmers to right way how to share inner application dependencies (relations).
+We have 3 kind of DI methods - constructor injection, method injection and property injection.
+
+Read this article and learn about Dependency Injection. Read only content in this url (Part1) other parts are useless for you.
+-------http://fabien.potencier.org/what-is-dependency-injection.html-------
+
+You can also make you knowledge deeper and read this.
+-------http://www.procata.com/talks/phptek-may2007-dependency.pdf-------
+
+Important thing what you need realize is, that you knew already before what is Dependency Injection. Just now you discovered name and some rules for the practices what you already used before.
+
+DI is just if you put variable into constructor $date = new \DateTime('2013-01-01'); or to method $date->modify('2016-01-01') or to property $warrior->name = 'Thor';
+
+What is other and bad practice if we will not using DI ?
+
+ 
+Object like this has closed state inside and is not possible to modify him and based on that control behavior of new object . So this is wrong!
+
+
+class Warrior {
+
+    private $born;
+    private $name;
+
+    // example of invisible dependencies, bad practice
+    public function __construct(){
+        $this->born = new \DateTime('1990-01-01');
+        $this->name = 'Thor';
+    }
+}
+
+Very important! Property injection breaking one of the most important principle of OOP Encapsulation. Most of the time we will be using only constructor and method (setter) injection.
+--------https://en.wikipedia.org/wiki/Encapsulation_(computer_programming)-----------
+ 
+Example of bad practice when you set inner class property as public (anybody can put inside class not validated code), we always try keep all inner class properties as private or protected.
+
+
+class Warrior {
+    public $born; // having public property inside object is very bad practice
+    public $name;
+}
+
+$thor = new Warrior();
+$thor->name = 'Thor';
+$thor->born = new \DateTime('1990-01-01');
+
+Presenter property injection?
+There is only one case when we will be using property injection is Nette Presenter and this is because presenter usually need a lot of dependencies and putting all of them into constructor is not good practice. Moreover Presenter is very specific object, it is the highest level of our framework and no programmer will not be using it manually. That means is very small chance that somebody can mistakenly inject into property no valid code.
+
+Dependency Injection Container?
+DI Container is something like storage for all your services (service is just cool name for object what you need to using across whole project). You are able to register your service (for example class Articles) into this storage, usually using by some configuration file. Then you just call some method which get your service from DI container and then you can use it. Advantage of this storage is becaouse DI container can automatically care about keeping your objects as only one instance (one reference) and not creating new useless objects and wasting memory and performance.
+
+Autowiring?
+Is usually feature related to DI container but not DI container itself. Autowiring means that some application core is able to provide you dependencies into your classes automatically and you don't need to create them by yourself by operator new.
+
+In nette we have this application core wich is working with Nette DI Container, then you can do inside your application such a cool things.
+
+ 
+Example of nette config.neon
+
+
+
+
+# registration of database into DI Container
+# database option is automatically working with Nette Database library
+database:
+    default:
+        dsn:          "mysql:host=127.0.0.1;dbname=test" 
+        user:         "root" 
+        password:     "password" 
+
+# registration of your own services into DI Container
+# you can register it using by whole name of your class (including namespace)
+services:
+    - App\Model\Articles
+
+
+ 
+Example of nette snadbox/app/model/Articles.php
+
+
+namespace App\Model;
+
+class Articles{
+
+    private $database;
+
+    // if you put into your config.neon this class (including namespace)
+    // services:
+    //     - App\Model\Articles
+    // nette automatically put it into DI Container and automatically inject database
+    // which is also registered in config.neon
+    __construct(Nette\Database\Context $databseContext){ 
+        $this->database = $databaseContext;
+    }
+
+    public function findAllArticles(){
+        return $this->database->table('articles')->findAll();
+    }
+}
+
+ 
+Example of nette snadbox/app/presenters/HomepagePresenter.php
+
+
+namespace App\Presenters;
+
+class HomepagePresenter{
+
+    // Annotation @inject is another method how to get dependencies
+    // This is dangerous practice of Property Injection therefor
+    // is working only in Presenters
+    /**
+    * @var App\Model\Articles $propertyInjectedArticles
+    * @inject
+    */
+    public $propertyInjectedArticles;
+
+    private $articles;
+
+    // if is Article service registered in config.neon
+    // nette automatically inject it into all of other services (objects)
+    // which are also registered 
+    //
+    // All Presenters are automatically registered in DI container by default !!
+    //
+    __construct(App\Model\Articles $articles){ 
+        $this->articles = $articles;
+    }
+
+    public function renderArticles(){
+        $this->template->articles = $this->articles->findAll();
+    }
+}
+
+Nette documentation?
+Because English Nette Documentation about this topic is not the best you can start read it after all my theory above.
+
+There is two articles
+
+?Dependency Injection
+------https://doc.nette.org/en/2.3/dependency-injection------
+
+?Getting Dependencies 
+------https://doc.nette.org/en/2.3/di-usage------
+
+?skip components and other possibilities
+Test all of your code and keep extra focus on whole this topic. Dependency Injection will be your daily routine.
+
+********************************************************************************
+Latte is template engine from Nette Foundation and after DI learning should be easy reading.
+
+https://latte.nette.org/en/
+https://latte.nette.org/en/macros
+https://latte.nette.org/en/filters
+
+Latte is very easy but powerfull.
+
+You can skip https://latte.nette.org/en/#toc-installation-and-usage because you have already installed in Nette framework.
+
+If you will have still some time you can learn also some helper classes from Nette Framework.
+https://doc.nette.org/en/2.3/strings
+https://doc.nette.org/en/2.3/arrays
